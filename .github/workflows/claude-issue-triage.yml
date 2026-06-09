@@ -1,0 +1,86 @@
+name: Claude Issue Triage
+
+on:
+  issues:
+    types: [opened, edited]
+
+concurrency:
+  group: issue-triage-${{ github.event.issue.number }}
+  cancel-in-progress: true
+
+jobs:
+  triage:
+    if: github.event.sender.type != 'Bot'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Analyze and triage issue
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          claude_args: '--allowedTools "Bash(gh issue view *),Bash(gh issue edit *),Bash(gh issue comment *),Bash(gh label list *),Bash(gh label create *)"'
+          prompt: |
+            Analiza el issue #${{ github.event.issue.number }} del repositorio ${{ github.repository }} y realiza el triage automático.
+
+            Sigue estos pasos en orden:
+
+            1. Lee el issue completo:
+               gh issue view ${{ github.event.issue.number }} --repo ${{ github.repository }}
+
+            2. Lista los labels existentes en el repo:
+               gh label list --repo ${{ github.repository }}
+
+            3. Elige entre 1 y 3 labels del siguiente set estándar que mejor describan el issue:
+               - bug
+               - feature
+               - enhancement
+               - question
+               - documentation
+
+               Si alguno de los labels elegidos no existe en el repo, créalo antes de aplicarlo:
+               gh label create <nombre> --repo ${{ github.repository }} --color <color-hex>
+
+            4. Aplica los labels al issue:
+               gh issue edit ${{ github.event.issue.number }} --repo ${{ github.repository }} --add-label "<label1>,<label2>"
+
+            5. Publica un comentario con el diagnóstico completo:
+               gh issue comment ${{ github.event.issue.number }} --repo ${{ github.repository }} --body "<diagnóstico>"
+
+            El comentario debe seguir exactamente este formato (en español):
+
+            ## 🔍 Diagnóstico automático
+
+            **Tipo:** <bug / feature / enhancement / question / documentation>
+            **Labels asignados:** <lista de labels aplicados>
+            **Resumen:** <1–2 frases que describan qué reporta o pide el issue>
+
+            ### Área del código afectada
+            <Menciona archivos y funciones relevantes del proyecto: game.js (init, loop, collide, tryRotate, lockPiece, clearLines, draw), style.css, index.html — solo los que apliquen>
+
+            ### Causa probable / contexto
+            <Si es un bug: hipótesis de causa raíz. Si es una feature: estado actual del código y qué falta>
+
+            ### Pasos sugeridos para resolver
+            1. <paso concreto>
+            2. <paso concreto>
+            3. <agrega más si es necesario>
+
+            ### Riesgos y consideraciones
+            <Posibles regresiones, constantes a revisar (COLS, ROWS, BLOCK, COLORS, LINE_SCORES, dropInterval), efectos en otras funciones>
+
+            ---
+            *Diagnóstico generado automáticamente por Claude. Si el issue fue editado, este comentario refleja el análisis de la versión más reciente.*
+
+            Reglas importantes:
+            - NO edites el cuerpo del issue, solo agrega el comentario.
+            - Sé técnico y conciso.
+            - Si no tienes suficiente contexto para alguna sección, indícalo brevemente en lugar de inventar.
