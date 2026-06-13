@@ -46,6 +46,15 @@
   --grid-color: #c4c4d8;
 }
 
+/* Neon skin overrides — applied regardless of light/dark theme */
+[data-skin="neon"] {
+  --bg-body: #000000;
+  --bg-board: #000000;
+  --border-board: #111111;
+  --bg-overlay: rgba(0, 0, 0, 0.85);
+  --grid-color: #0a0a0a;
+}
+
 body {
   background: var(--bg-body);
   color: var(--color-text);
@@ -202,6 +211,18 @@ kbd {
 
 #restart-btn:hover {
   background: var(--bg-restart-btn-hover);
+}
+
+/* ---- Skin selector ---- */
+.skin-select {
+  background: var(--bg-kbd);
+  color: var(--color-text);
+  border: 1px solid var(--border-kbd);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  width: 100%;
 }
 
 /* ---- Theme Toggle ---- */
