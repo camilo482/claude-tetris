@@ -16,6 +16,20 @@ const COLORS = [
   '#9e9e9e', // Nut - metallic grey
 ];
 
+const PASTEL_COLORS = [
+  null,
+  '#aec6cf', // I - pastel blue
+  '#ffd1dc', // O - pastel pink
+  '#b5ead7', // T - pastel green
+  '#c7ceea', // S - pastel periwinkle
+  '#ffb7b2', // Z - pastel coral
+  '#ffdac1', // J - pastel peach
+  '#e2f0cb', // L - pastel lime
+  '#dcd3ff', // Nut - pastel lavender
+];
+
+let activeSkin = 'retro';
+
 const PIECES = [
   null,
   [[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]], // I
@@ -53,6 +67,7 @@ const controlsBtn = document.getElementById('controls-btn');
 const pauseControls = document.getElementById('pause-controls');
 const startLevelSelect = document.getElementById('start-level-select');
 const themeToggle = document.getElementById('theme-toggle');
+const skinSelect = document.getElementById('skin-select');
 
 let board, current, next, score, lines, level, startLevel, paused, gameOver, lastTime, dropAccum, dropInterval, animId;
 let comboRun, maxCombo;
@@ -180,13 +195,56 @@ function updateHUD() {
 
 function drawBlock(context, x, y, colorIndex, size, alpha) {
   if (!colorIndex) return;
-  const color = COLORS[colorIndex];
   context.globalAlpha = alpha ?? 1;
-  context.fillStyle = color;
-  context.fillRect(x * size + 1, y * size + 1, size - 2, size - 2);
-  // highlight
-  context.fillStyle = 'rgba(255,255,255,0.12)';
-  context.fillRect(x * size + 1, y * size + 1, size - 2, 4);
+
+  if (activeSkin === 'pastel') {
+    const color = PASTEL_COLORS[colorIndex] || COLORS[colorIndex];
+    context.fillStyle = color;
+    const bx = x * size + 2;
+    const by = y * size + 2;
+    const bw = size - 4;
+    const bh = size - 4;
+    if (context.roundRect) {
+      context.beginPath();
+      context.roundRect(bx, by, bw, bh, 6);
+      context.fill();
+    } else {
+      const rad = 6;
+      context.beginPath();
+      context.moveTo(bx + rad, by);
+      context.lineTo(bx + bw - rad, by);
+      context.quadraticCurveTo(bx + bw, by, bx + bw, by + rad);
+      context.lineTo(bx + bw, by + bh - rad);
+      context.quadraticCurveTo(bx + bw, by + bh, bx + bw - rad, by + bh);
+      context.lineTo(bx + rad, by + bh);
+      context.quadraticCurveTo(bx, by + bh, bx, by + bh - rad);
+      context.lineTo(bx, by + rad);
+      context.quadraticCurveTo(bx, by, bx + rad, by);
+      context.closePath();
+      context.fill();
+    }
+  } else {
+    const color = COLORS[colorIndex];
+    if (activeSkin === 'neon') {
+      context.shadowBlur = 14;
+      context.shadowColor = color;
+    }
+    context.fillStyle = color;
+    context.fillRect(x * size + 1, y * size + 1, size - 2, size - 2);
+    if (activeSkin === 'neon') {
+      context.shadowBlur = 0;
+    }
+    context.fillStyle = 'rgba(255,255,255,0.12)';
+    context.fillRect(x * size + 1, y * size + 1, size - 2, 4);
+
+    if (activeSkin === 'pixel') {
+      context.globalAlpha = 0.3;
+      context.fillStyle = 'rgba(0,0,0,1)';
+      context.fillRect(x * size + 2, y * size + 2, 5, 5);
+      context.fillRect(x * size + size / 2 + 2, y * size + size / 2 + 2, 5, 5);
+    }
+  }
+
   context.globalAlpha = 1;
 }
 
@@ -473,11 +531,26 @@ startLevelSelect.addEventListener('change', () => {
   localStorage.setItem('tetris-start-level', startLevelSelect.value);
 });
 
+skinSelect.addEventListener('change', () => {
+  activeSkin = skinSelect.value;
+  document.documentElement.setAttribute('data-skin', activeSkin);
+  localStorage.setItem('tetris-skin', activeSkin);
+  if (current) draw();
+  if (next) drawNext();
+});
+
 themeToggle.addEventListener('change', () => {
   const theme = themeToggle.checked ? 'light' : 'dark';
   document.documentElement.setAttribute('data-theme', theme);
   localStorage.setItem('tetris-theme', theme);
 });
+
+(function initSkin() {
+  const saved = localStorage.getItem('tetris-skin') || 'retro';
+  activeSkin = saved;
+  document.documentElement.setAttribute('data-skin', saved);
+  skinSelect.value = saved;
+})();
 
 (function initTheme() {
   const saved = localStorage.getItem('tetris-theme') || 'dark';
